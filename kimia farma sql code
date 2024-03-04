@@ -1,0 +1,45 @@
+--mengganti kedua nama kolom rating dari kedua tabel yang berbeda agar tidak sama
+ALTER TABLE `rakamin-kf-analytics-415616.kimia_farma.final_transaction`
+RENAME COLUMN rating to rating_transaction
+;
+ALTER TABLE `rakamin-kf-analytics-415616.kimia_farma.kantor_cabang`
+RENAME COLUMN rating to rating_cabang
+;
+
+
+CREATE TABLE `rakamin-kf-analytics-415616.kimia_farma.analysis_table` AS 
+SELECT 
+       final.transaction_id,
+       final.date,
+       cab.branch_id,
+       cab.branch_name,
+       cab.kota,
+       cab.provinsi,
+       cab.rating_cabang,
+       final.customer_name,
+       pro.product_id,
+       pro.product_name,
+       pro.price as actual_price,
+       final.discount_percentage,
+CASE   WHEN final.price <= 50000 THEN 0.10
+       WHEN final.price > 50000 AND final.price <= 100000 THEN 0.15
+       WHEN final.price > 100000 AND final.price <= 300000 THEN 0.20
+       WHEN final.price > 300000 AND final.price <= 500000 THEN 0.25
+       WHEN final.price > 500000 THEN 0.30
+       ELSE 0 
+       END persentase_gross_laba,
+       final.price-(final.price*final.discount_percentage) AS nett_sales,
+CASE   WHEN final.price <= 50000 THEN final.price*0.10-final.price*final.discount_percentage
+       WHEN final.price > 50000 AND final.price <= 100000 THEN final.price*0.15-final.price*final.discount_percentage
+       WHEN final.price > 100000 AND final.price <= 300000 THEN final.price*0.20-final.price*final.discount_percentage
+       WHEN final.price > 300000 AND final.price <= 500000 THEN final.price*0.25-final.price*final.discount_percentage
+       WHEN final.price > 500000 THEN final.price*0.30-final.price*final.discount_percentage
+       ELSE 0 
+       END AS nett_profit,
+       final.rating_transaction
+FROM `rakamin-kf-analytics-415616.kimia_farma.final_transaction` final
+JOIN `rakamin-kf-analytics-415616.kimia_farma.kantor_cabang` cab
+      ON final.branch_id = cab.branch_id
+JOIN  `rakamin-kf-analytics-415616.kimia_farma.product` pro
+      ON final.product_id = pro.product_id 
+;
